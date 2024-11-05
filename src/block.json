@@ -2,11 +2,15 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "create-block/date-block",
-	"title": "Date",
+	"title": "Date Block",
 	"category": "theme",
 	"description": "Display a date.",
 	"textdomain": "default",
 	"attributes": {
+		"source": {
+			"type": "string",
+			"default": "postDate"
+		},
 		"textAlign": {
 			"type": "string"
 		},
@@ -69,5 +73,9 @@
 				"style": true
 			}
 		}
-	}
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js"
 }

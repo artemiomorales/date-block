@@ -7,6 +7,7 @@ import clsx from 'clsx';
  * WordPress dependencies
  */
 import { useEntityProp, store as coreStore } from '@wordpress/core-data';
+
 import { useMemo, useState } from '@wordpress/element';
 import {
 	dateI18n,
@@ -29,15 +30,43 @@ import {
 	PanelBody,
 } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
-import { edit } from '@wordpress/icons';
 import { DOWN } from '@wordpress/keycodes';
 import { useSelect } from '@wordpress/data';
+
+const EditIcon = () => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		viewBox="0 0 24 24"
+		width="24"
+		height="24"
+		aria-hidden="true"
+		focusable="false"
+	>
+		<path d="m19 7-3-3-8.5 8.5-1 4 4-1L19 7Zm-7 11.5H5V20h7v-1.5Z"></path>
+	</svg>
+);
+
+const TimeFormat = (targetDate, ref, format, siteFormat) => {
+	return (
+		<time dateTime={ dateI18n( 'c', targetDate ) } ref={ ref }>
+			{ format === 'human-diff'
+				? humanTimeDiff( targetDate )
+				: dateI18n( format || siteFormat, targetDate ) }
+		</time>
+	)
+}
 
 export default function DateEdit( {
 	attributes: { textAlign, format, isLink, displayType },
 	context: { postId, postType: postTypeSlug, queryId },
 	setAttributes,
 } ) {
+	// Get the available post meta fields.
+	const postMetaFields = useSelect( ( select ) => select( coreStore ).getPostMeta( postId ), [ postId ] );
+
+	// Generate a list of source options based on the available post meta fields.
+	const sourceOptions = postMetaFields.map( ( field ) => ( { label: field.label, value: field.key } ) );
+
 	const blockProps = useBlockProps( {
 		className: clsx( {
 			[ `has-text-align-${ textAlign }` ]: textAlign,
@@ -66,7 +95,7 @@ export default function DateEdit( {
 		'site',
 		'time_format'
 	);
-	const [ date, setDate ] = useEntityProp(
+	const [ postDate, setPostDate ] = useEntityProp(
 		'postType',
 		postTypeSlug,
 		displayType,
@@ -81,28 +110,51 @@ export default function DateEdit( {
 		[ postTypeSlug ]
 	);
 
-	const dateLabel =
+	const postDateLabel =
 		displayType === 'date' ? __( 'Post Date' ) : __( 'Post Modified Date' );
 
-	let postDate = date ? (
-		<time dateTime={ dateI18n( 'c', date ) } ref={ setPopoverAnchor }>
-			{ format === 'human-diff'
-				? humanTimeDiff( date )
-				: dateI18n( format || siteFormat, date ) }
-		</time>
-	) : (
-		dateLabel
-	);
+	let date;
 
-	if ( isLink && date ) {
-		postDate = (
+	// Create conditional based on the source attribute
+	if ( source === 'postDate' ) {
+		date = postDate ? (
+			<TimeFormat targetDate={ postDate } ref={ setPopoverAnchor } format={ format } siteFormat={ siteFormat } />
+		) : (
+			postDateLabel
+		);
+	} else {
+		let sourceDate = postMetaFields.find( field => field.key === source )?.value;
+		// check if the source date is a valid date
+		sourceDate = isNaN( Date.parse( sourceDate ) ) ? null : sourceDate;
+		date = sourceDate ? (
+			<TimeFormat targetDate={ sourceDate } ref={ setPopoverAnchor } format={ format } siteFormat={ siteFormat } />
+		) : (
+			null
+		);
+	}
+
+	if ( isLink && postDate ) {
+		date = (
 			<a
 				href="#post-date-pseudo-link"
 				onClick={ ( event ) => event.preventDefault() }
 			>
-				{ postDate }
+				{ date }
 			</a>
 		);
+	}
+
+	const callSetDate = ( nextDate ) => {
+		if ( source === 'postDate' ) {
+			setPostDate( nextDate );
+		} else {
+			// dispatch an action to update the meta field value
+			dispatch( 'core/editor' ).editPost( {
+				meta: {
+					[ source ]: nextDate,
+				},
+			} );
+		}
 	}
 
 	return (
@@ -115,15 +167,14 @@ export default function DateEdit( {
 					} }
 				/>
 				{ date &&
-					displayType === 'date' &&
-					! isDescendentOfQueryLoop && (
+					displayType === 'date' && (
 						<ToolbarGroup>
 							<Dropdown
 								popoverProps={ popoverProps }
 								renderContent={ ( { onClose } ) => (
 									<PublishDateTimePicker
 										currentDate={ date }
-										onChange={ setDate }
+										onChange={ callSetDate }
 										is12Hour={ is12HourFormat(
 											siteTimeFormat
 										) }
@@ -147,8 +198,8 @@ export default function DateEdit( {
 									return (
 										<ToolbarButton
 											aria-expanded={ isOpen }
-											icon={ edit }
 											title={ __( 'Change Date' ) }
+											icon={ EditIcon }
 											onClick={ onToggle }
 											onKeyDown={ openOnArrowDown }
 										/>
@@ -167,6 +218,17 @@ export default function DateEdit( {
 						onChange={ ( nextFormat ) =>
 							setAttributes( { format: nextFormat } )
 						}
+					/>
+					<SelectControl
+						label={ __( 'Source' ) }
+						value={ source }
+						onChange={ ( nextSource ) =>
+							setAttributes( { source: nextSource } )
+						}
+						options={ [
+							{ label: __( 'Post Date' ), value: 'date' },
+							...sourceOptions,
+						] }
 					/>
 					<ToggleControl
 						__nextHasNoMarginBottom
@@ -198,7 +260,7 @@ export default function DateEdit( {
 				</PanelBody>
 			</InspectorControls>
 
-			<div { ...blockProps }>{ postDate }</div>
+			<div { ...blockProps }>{ date }</div>
 		</>
 	);
 }
