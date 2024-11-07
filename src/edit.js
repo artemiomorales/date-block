@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { useEntityProp, store as coreStore } from '@wordpress/core-data';
 
 import { useMemo, useState } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	dateI18n,
 	humanTimeDiff,
@@ -28,6 +29,7 @@ import {
 	ToolbarButton,
 	ToggleControl,
 	PanelBody,
+	SelectControl,
 } from '@wordpress/components';
 import { __, _x, sprintf } from '@wordpress/i18n';
 import { DOWN } from '@wordpress/keycodes';
@@ -46,7 +48,7 @@ const EditIcon = () => (
 	</svg>
 );
 
-const TimeFormat = (targetDate, ref, format, siteFormat) => {
+const TimeFormat = (targetDate, ref, format = 'd F Y', siteFormat) => {
 	return (
 		<time dateTime={ dateI18n( 'c', targetDate ) } ref={ ref }>
 			{ format === 'human-diff'
@@ -56,17 +58,30 @@ const TimeFormat = (targetDate, ref, format, siteFormat) => {
 	)
 }
 
+const getPostMetaFields = async ( postId ) => {
+	const postMetaFields = await apiFetch( {
+		path: `/wp/v2/posts/${ postId }`,
+		method: 'GET',
+	} );
+	return postMetaFields;
+}
+
 export default function DateEdit( {
-	attributes: { textAlign, format, isLink, displayType },
+	attributes: { textAlign, format, isLink, displayType, source },
 	context: { postId, postType: postTypeSlug, queryId },
 	setAttributes,
 } ) {
+	const [ postMetaFields, setPostMetaFields ] = useState( null );
+	const [ sourceOptions, setSourceOptions ] = useState( [] );
 	// Get the available post meta fields.
-	const postMetaFields = useSelect( ( select ) => select( coreStore ).getPostMeta( postId ), [ postId ] );
+	getPostMetaFields( postId ).then( ( fields ) => {
+		if ( fields?.meta ) {
+			setPostMetaFields( fields.meta );
+			setSourceOptions( Object.keys( fields.meta ).map( ( key ) => ( { label: key, value: fields.meta[key] } ) ) );
+		}
+	} );
 
 	// Generate a list of source options based on the available post meta fields.
-	const sourceOptions = postMetaFields.map( ( field ) => ( { label: field.label, value: field.key } ) );
-
 	const blockProps = useBlockProps( {
 		className: clsx( {
 			[ `has-text-align-${ textAlign }` ]: textAlign,
@@ -123,13 +138,14 @@ export default function DateEdit( {
 			postDateLabel
 		);
 	} else {
-		let sourceDate = postMetaFields.find( field => field.key === source )?.value;
+		// find the source date in the post meta fields, which is an object with a key and a value
+		let sourceDate = Object.keys(postMetaFields || {}).find(key => key === source) ? postMetaFields[source] : null;
 		// check if the source date is a valid date
 		sourceDate = isNaN( Date.parse( sourceDate ) ) ? null : sourceDate;
 		date = sourceDate ? (
 			<TimeFormat targetDate={ sourceDate } ref={ setPopoverAnchor } format={ format } siteFormat={ siteFormat } />
 		) : (
-			null
+			__( 'Invalid date' )
 		);
 	}
 
@@ -219,17 +235,19 @@ export default function DateEdit( {
 							setAttributes( { format: nextFormat } )
 						}
 					/>
-					<SelectControl
-						label={ __( 'Source' ) }
-						value={ source }
-						onChange={ ( nextSource ) =>
-							setAttributes( { source: nextSource } )
-						}
-						options={ [
-							{ label: __( 'Post Date' ), value: 'date' },
-							...sourceOptions,
-						] }
-					/>
+					{ sourceOptions.length > 0 && (
+						<SelectControl
+							label={ __( 'Source' ) }
+							value={ source }
+							onChange={ ( nextSource ) =>
+								setAttributes( { source: nextSource } )
+							}
+							options={ [
+								{ label: __( 'Post Date' ), value: 'postDate' },
+								...sourceOptions,
+							] }
+						/>
+					) }
 					<ToggleControl
 						__nextHasNoMarginBottom
 						label={

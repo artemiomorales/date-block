@@ -79,6 +79,22 @@ function render_block_date_block( $attributes, $content, $block ) {
 	);
 }
 
+// Initialize on init
+function register_custom_date_meta() {
+	// Register custom field with a date
+	register_meta(
+		'post',
+		'custom_date',
+		array(
+			'show_in_rest' => true,
+			'single' => true,
+			'type' => 'string',
+			'default' => '2024-01-01',
+		)
+	);
+}
+add_action( 'init', 'register_custom_date_meta' );
+
 /**
  * Registers the block using the metadata loaded from the `block.json` file.
  * Behind the scenes, it registers also all assets so they can be enqueued
