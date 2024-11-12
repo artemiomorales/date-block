@@ -7,73 +7,14 @@
 	"description": "Display a date.",
 	"textdomain": "default",
 	"attributes": {
-		"source": {
+		"content": {
 			"type": "string",
-			"default": "postDate"
-		},
-		"textAlign": {
-			"type": "string"
-		},
-		"format": {
-			"type": "string"
-		},
-		"isLink": {
-			"type": "boolean",
-			"default": false
-		},
-		"displayType": {
-			"type": "string",
-			"default": "date"
+			"role": "content",
+			"source": "attribute"
 		}
 	},
 	"usesContext": [ "postId", "postType", "queryId" ],
-	"example": {
-		"viewportWidth": 350
-	},
-	"supports": {
-		"html": false,
-		"color": {
-			"gradients": true,
-			"link": true,
-			"__experimentalDefaultControls": {
-				"background": true,
-				"text": true,
-				"link": true
-			}
-		},
-		"spacing": {
-			"margin": true,
-			"padding": true
-		},
-		"typography": {
-			"fontSize": true,
-			"lineHeight": true,
-			"__experimentalFontFamily": true,
-			"__experimentalFontWeight": true,
-			"__experimentalFontStyle": true,
-			"__experimentalTextTransform": true,
-			"__experimentalTextDecoration": true,
-			"__experimentalLetterSpacing": true,
-			"__experimentalDefaultControls": {
-				"fontSize": true
-			}
-		},
-		"interactivity": {
-			"clientNavigation": true
-		},
-		"__experimentalBorder": {
-			"radius": true,
-			"color": true,
-			"width": true,
-			"style": true,
-			"__experimentalDefaultControls": {
-				"radius": true,
-				"color": true,
-				"width": true,
-				"style": true
-			}
-		}
-	},
+	"supports": { },
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
 	"style": "file:./style-index.css",

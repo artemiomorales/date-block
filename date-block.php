@@ -18,63 +18,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function render_block_date_block( $attributes, $content, $block ) {
-	if ( ! isset( $block->context['postId'] ) ) {
+	if ( ! isset( $block->context['postId'] ) || ! isset( $attributes['metadata']['bindings']['content']['args']['key'] ) ) {
 		return '';
 	}
 
-	$post_ID = $block->context['postId'];
+	$wrapper_attributes = get_block_wrapper_attributes();
+	// set the key to a variable
+	$custom_field_key = $attributes['metadata']['bindings']['content']['args']['key'];
 
-	if ( isset( $attributes['format'] ) && 'human-diff' === $attributes['format'] ) {
-		$post_timestamp = get_post_timestamp( $post_ID );
-		if ( $post_timestamp > time() ) {
-			// translators: %s: human-readable time difference.
-			$formatted_date = sprintf( __( '%s from now' ), human_time_diff( $post_timestamp ) );
+	$formatted_date = '';
+
+	// check if content is empty
+	if ( ! empty( $content ) ) {
+		if ( 'release_date' === $custom_field_key ) {
+			$formatted_date = gmdate( 'F j, Y', strtotime( $content ) );
+		} else if ( 'publish_date' === $custom_field_key ) {
+			$formatted_date = gmdate( 'F Y', strtotime( $content ) );
 		} else {
-			// translators: %s: human-readable time difference.
-			$formatted_date = sprintf( __( '%s ago' ), human_time_diff( $post_timestamp ) );
+			// format the date in a different way
+			$formatted_date = $content;
 		}
-	} else {
-		$formatted_date = get_the_date( empty( $attributes['format'] ) ? '' : $attributes['format'], $post_ID );
-	}
-	$unformatted_date = esc_attr( get_the_date( 'c', $post_ID ) );
-	$classes          = array();
-
-	if ( isset( $attributes['textAlign'] ) ) {
-		$classes[] = 'has-text-align-' . $attributes['textAlign'];
-	}
-	if ( isset( $attributes['style']['elements']['link']['color']['text'] ) ) {
-		$classes[] = 'has-link-color';
-	}
-
-	/*
-	 * If the "Display last modified date" setting is enabled,
-	 * only display the modified date if it is later than the publishing date.
-	 */
-	if ( isset( $attributes['displayType'] ) && 'modified' === $attributes['displayType'] ) {
-		if ( get_the_modified_date( 'Ymdhi', $post_ID ) > get_the_date( 'Ymdhi', $post_ID ) ) {
-			if ( isset( $attributes['format'] ) && 'human-diff' === $attributes['format'] ) {
-				// translators: %s: human-readable time difference.
-				$formatted_date = sprintf( __( '%s ago' ), human_time_diff( get_post_timestamp( $post_ID, 'modified' ) ) );
-			} else {
-				$formatted_date = get_the_modified_date( empty( $attributes['format'] ) ? '' : $attributes['format'], $post_ID );
-			}
-			$unformatted_date = esc_attr( get_the_modified_date( 'c', $post_ID ) );
-			$classes[]        = 'wp-block-post-date__modified-date';
-		} else {
-			return '';
-		}
-	}
-
-	$wrapper_attributes = get_block_wrapper_attributes( array( 'class' => implode( ' ', $classes ) ) );
-
-	if ( isset( $attributes['isLink'] ) && $attributes['isLink'] ) {
-		$formatted_date = sprintf( '<a href="%1s">%2s</a>', get_the_permalink( $post_ID ), $formatted_date );
 	}
 
 	return sprintf(
 		'<div %1$s><time datetime="%2$s">%3$s</time></div>',
 		$wrapper_attributes,
-		$unformatted_date,
+		$content,
 		$formatted_date
 	);
 }
@@ -84,7 +53,18 @@ function register_custom_date_meta() {
 	// Register custom field with a date
 	register_meta(
 		'post',
-		'custom_date',
+		'publish_date',
+		array(
+			'show_in_rest' => true,
+			'single' => true,
+			'type' => 'string',
+			'default' => '2024-01-01',
+		)
+	);
+
+	register_meta(
+		'post',
+		'release_date',
 		array(
 			'show_in_rest' => true,
 			'single' => true,
