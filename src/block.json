@@ -9,8 +9,7 @@
 	"attributes": {
 		"content": {
 			"type": "string",
-			"role": "content",
-			"source": "attribute"
+			"role": "content"
 		}
 	},
 	"usesContext": [ "postId", "postType", "queryId" ],

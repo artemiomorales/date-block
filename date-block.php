@@ -22,6 +22,8 @@ function render_block_date_block( $attributes, $content, $block ) {
 		return '';
 	}
 
+	$content_attribute = $attributes['content'];
+
 	$wrapper_attributes = get_block_wrapper_attributes();
 	// set the key to a variable
 	$custom_field_key = $attributes['metadata']['bindings']['content']['args']['key'];
@@ -29,14 +31,14 @@ function render_block_date_block( $attributes, $content, $block ) {
 	$formatted_date = '';
 
 	// check if content is empty
-	if ( ! empty( $content ) ) {
+	if ( ! empty( $content_attribute ) ) {
 		if ( 'release_date' === $custom_field_key ) {
-			$formatted_date = gmdate( 'F j, Y', strtotime( $content ) );
+			$formatted_date = gmdate( 'F j, Y', strtotime( $content_attribute ) );
 		} else if ( 'publish_date' === $custom_field_key ) {
-			$formatted_date = gmdate( 'F Y', strtotime( $content ) );
+			$formatted_date = gmdate( 'F Y', strtotime( $content_attribute ) );
 		} else {
 			// format the date in a different way
-			$formatted_date = $content;
+			$formatted_date = $content_attribute;
 		}
 	}
 
@@ -69,7 +71,7 @@ function register_custom_date_meta() {
 			'show_in_rest' => true,
 			'single' => true,
 			'type' => 'string',
-			'default' => '2024-01-01',
+			'default' => '2026-01-01',
 		)
 	);
 }
